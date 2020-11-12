@@ -8,8 +8,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Check out repo
+    - name: Check out this repo
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Fetch latest data
+      run: |-
+        curl "https://data.police.uk/api/crimes-street/all-crime?lat=51.9042&lng=-2.10141" | jq . > "data/AA3_all_crime.json"
+        curl "https://data.police.uk/api/crimes-street/stops-street?lat=51.9042&lng=-2.10141"  | jq . > "data/AA3_stops_street.json"
+    - name: Commit and push if it changed
+      run: |-
+        git config user.name "Automated"
+        git config user.email "actions@users.noreply.github.com"
+        git add -A timestamp=$(date -u) && commit -m "Latest data: ${timestamp}" || exit 0
+        git push
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -24,16 +36,6 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install -r requirements.txt
-    - name: Check for new crimes
-      run: |-
-        python 'python/downloader.py'
-    - name: Commit and push changes
-      run: |-
-        git diff
-        git config --global user.email "downloader-bot@example.com"
-        git config --global user.name "download-bot"
-        git diff --quiet || (git add -A && git commit -m "Updated with latest")
-        git push
     - name: Update Feed and Page
       run: |-
         python 'python/content.py'
